@@ -9,7 +9,7 @@ run_cmd() {
         termux-usb -l > file.txt || continue
         USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
         termux-usb -r $USB_DEVICE || continue
-        termux-usb -e "./spd_dump --usb-fd $1" $USB_DEVICE && break
+        termux-usb -e "./apps/spd_dump --usb-fd $1" $USB_DEVICE && break
     done
 }
 
@@ -17,9 +17,9 @@ if [ ! -f u-boot-spl-16k-sign.bin ]; then
     run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec r splloader r uboot e splloader e splloader_bak reset"
     touch .etapa1
    
-    until ./gen_spl-unlock splloader.bin; do sleep 1; done
+    until ./apps/gen_spl-unlock splloader.bin; do sleep 1; done
     until mv -f splloader.bin u-boot-spl-16k-sign.bin; do sleep 1; done
-    until ./chsize uboot.bin; do sleep 1; done
+    until ./apps/chsize uboot.bin; do sleep 1; done
     until mv -f uboot.bin uboot_bak.bin; do sleep 1; done  
 else
     run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec e splloader e splloader_bak reset"
@@ -33,7 +33,7 @@ while true; do
     USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
     termux-usb -r $USB_DEVICE || continue
     
-    termux-usb -e "./spd_dump --usb-fd exec_addr 0x65015f08 fdl spl-unlock.bin 0x65000800" $USB_DEVICE 2>&1 | tee spd_output.txt
+    termux-usb -e "./apps/spd_dump --usb-fd exec_addr 0x65015f08 fdl spl-unlock.bin 0x65000800" $USB_DEVICE 2>&1 | tee spd_output.txt
    
     grep -q 'SEND spl-unlock.bin' spd_output.txt && break
 done
