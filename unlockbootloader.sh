@@ -6,6 +6,13 @@ APPS_DIR="$SCRIPT_DIR/apps"
 BIN_DIR="$SCRIPT_DIR/bin"
 BIN_MISC_DIR="$SCRIPT_DIR/bin_misc"
 
+if [ ! -d "$WORKSPACE_DIR" ]; then
+    echo "workspace folder not found. creating..."
+    mkdir -p "$WORKSPACE_DIR"
+else
+    echo "workspace folder already exists."
+fi
+
 cd "$WORKSPACE_DIR" || exit 1
 
 CLEAN_FILES=(.etapa1 .etapa1alt .etapa2 .etapa3 .etapa4 .etapa5)

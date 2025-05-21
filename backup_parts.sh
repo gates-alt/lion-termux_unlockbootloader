@@ -5,6 +5,13 @@ WORKSPACE_DIR="$SCRIPT_DIR/workspace"
 APPS_DIR="$SCRIPT_DIR/apps"
 BIN_DIR="$SCRIPT_DIR/bin"
 
+if [ ! -d "$WORKSPACE_DIR" ]; then
+    echo "workspace folder not found. creating..."
+    mkdir -p "$WORKSPACE_DIR"
+else
+    echo "workspace folder already exists."
+fi
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 USER_PATH="$SCRIPT_DIR/SPRD_BKP_${TIMESTAMP}_FULL"
 mkdir -p "$USER_PATH"
