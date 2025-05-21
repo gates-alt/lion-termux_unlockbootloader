@@ -1,7 +1,14 @@
 termux-wake-lock
 
-CLEAN_FILES=(.etapa1 .etapa1alt .etapa2 .etapa3 .etapa4 .etapa5)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$SCRIPT_DIR/workspace"
+APPS_DIR="$SCRIPT_DIR/apps"
+BIN_DIR="$SCRIPT_DIR/bin"
+BIN_MISC_DIR="$SCRIPT_DIR/bin_misc"
 
+cd "$WORKSPACE_DIR" || exit 1
+
+CLEAN_FILES=(.etapa1 .etapa1alt .etapa2 .etapa3 .etapa4 .etapa5)
 rm -f "${CLEAN_FILES[@]}"
 
 reset_usb() {
@@ -40,7 +47,7 @@ reset_usb() {
     done
 
     if [ -z "$USB_DEVS" ]; then
-        echo "nenhun dispositivo USB detectado após 30 segundos. abortando"
+        echo "nenhum dispositivo USB detectado após 30 segundos. abortando"
         exit 1
     fi
 
@@ -60,27 +67,27 @@ run_cmd() {
         termux-usb -l > file.txt || continue
         USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
         termux-usb -r $USB_DEVICE || continue
-        termux-usb -e "./apps/spd_dump --usb-fd $1" $USB_DEVICE && break
+        termux-usb -e "$APPS_DIR/spd_dump --usb-fd $1" $USB_DEVICE && break
     done
 }
 
 if [ ! -f u-boot-spl-16k-sign.bin ]; then
     reset_usb
-    run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec r splloader r uboot e splloader e splloader_bak reset"
+    run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec r splloader r uboot e splloader e splloader_bak reset"
     touch .etapa1
    
-    until ./apps/gen_spl-unlock splloader.bin; do sleep 1; done
+    until "$APPS_DIR/gen_spl-unlock" splloader.bin; do sleep 1; done
     until mv -f splloader.bin u-boot-spl-16k-sign.bin; do sleep 1; done
-    until ./apps/chsize uboot.bin; do sleep 1; done
+    until "$APPS_DIR/chsize" uboot.bin; do sleep 1; done
     until mv -f uboot.bin uboot_bak.bin; do sleep 1; done  
 else
     reset_usb
-    run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec e splloader e splloader_bak reset"
+    run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec e splloader e splloader_bak reset"
     touch .etapa1alt
 fi
 
 reset_usb
-run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec w uboot bin/fdl2-cboot.bin reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec w uboot $BIN_DIR/fdl2-cboot.bin reset"
 touch .etapa2
 
 reset_usb
@@ -89,16 +96,16 @@ while true; do
     USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
     termux-usb -r $USB_DEVICE || continue
     
-    termux-usb -e "./apps/spd_dump --usb-fd loadexec bin/custom_exec_no_verify_65015f08.bin fdl spl-unlock.bin 0x65000800" $USB_DEVICE 2>&1 | tee spd_output.txt
+    termux-usb -e "$APPS_DIR/spd_dump --usb-fd loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl spl-unlock.bin 0x65000800" $USB_DEVICE 2>&1 | tee spd_output.txt
    
     grep -q 'SEND spl-unlock.bin' spd_output.txt && break
 done
 touch .etapa3
 
 reset_usb
-run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec verbose 2 read_part miscdata 8192 64 key reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec verbose 2 read_part miscdata 8192 64 key reset"
 touch .etapa4
 
 reset_usb
-run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec r boot w splloader u-boot-spl-16k-sign.bin w uboot uboot_bak.bin w misc bin_misc/misc-wipe.bin reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec r boot w splloader u-boot-spl-16k-sign.bin w uboot uboot_bak.bin w misc $BIN_MISC_DIR/misc-wipe.bin reset"
 touch .etapa5

@@ -1,17 +1,24 @@
 termux-wake-lock
 
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-USER_PATH="./SPRD_BKP_${TIMESTAMP}_FULL"
-mkdir -p $USER_PATH
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$SCRIPT_DIR/workspace"
+APPS_DIR="$SCRIPT_DIR/apps"
+BIN_DIR="$SCRIPT_DIR/bin"
 
-LATEST_PTABLE=$(ls -t ./partition* ./partitions* 2>/dev/null | head -n 1)
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+USER_PATH="$SCRIPT_DIR/SPRD_BKP_${TIMESTAMP}_FULL"
+mkdir -p "$USER_PATH"
+
+cd "$WORKSPACE_DIR" || exit 1
+
+LATEST_PTABLE=$(ls -t "$WORKSPACE_DIR"/partition* "$WORKSPACE_DIR"/partitions* 2>/dev/null | head -n 1)
 
 run_cmd() {
     while true; do
         termux-usb -l > file.txt || continue
         USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
         termux-usb -r $USB_DEVICE || continue
-        termux-usb -e "./apps/spd_dump --usb-fd $1" $USB_DEVICE && break
+        termux-usb -e "$APPS_DIR/spd_dump --usb-fd $1" $USB_DEVICE && break
     done
 }
 
@@ -51,7 +58,7 @@ reset_usb() {
     done
 
     if [ -z "$USB_DEVS" ]; then
-        echo "nenhun dispositivo USB detectado após 30 segundos. abortando"
+        echo "nenhum dispositivo USB detectado após 30 segundos. abortando"
         exit 1
     fi
 
@@ -67,4 +74,4 @@ reset_usb() {
 }
 
 reset_usb
-run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec path $USER_PATH read_parts $LATEST_PTABLE reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec path $USER_PATH read_parts $LATEST_PTABLE reset"

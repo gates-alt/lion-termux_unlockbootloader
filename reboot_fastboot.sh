@@ -4,9 +4,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR/workspace"
 APPS_DIR="$SCRIPT_DIR/apps"
 BIN_DIR="$SCRIPT_DIR/bin"
-BIN_MISC_DIR="$SCRIPT_DIR/bin_misc"
-
-cd "$WORKSPACE_DIR" || exit 1
 
 reset_usb() {
     MODEL=$(getprop ro.product.model | tr '[:upper:]' '[:lower:]')
@@ -16,7 +13,7 @@ reset_usb() {
     echo "product: $MODEL"
     echo "soc: $SOC"
     echo "kernel: $KERNEL_VER"
-    
+
     NEED_RESET=0
 
     if [[ "$MODEL" == *"moto g20"* || "$MODEL" == *"moto e40"* ]]; then
@@ -60,6 +57,8 @@ reset_usb() {
 }
 
 run_cmd() {
+    cd "$WORKSPACE_DIR" || exit 1
+
     while true; do
         termux-usb -l > file.txt || continue
         USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
@@ -69,4 +68,4 @@ run_cmd() {
 }
 
 reset_usb
-run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec w misc $BIN_MISC_DIR/misc-wipe.bin reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec reboot-fastboot"

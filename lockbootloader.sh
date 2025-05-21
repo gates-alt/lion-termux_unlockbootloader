@@ -1,5 +1,11 @@
 termux-wake-lock
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$SCRIPT_DIR/workspace"
+APPS_DIR="$SCRIPT_DIR/apps"
+BIN_DIR="$SCRIPT_DIR/bin"
+BIN_MISC_DIR="$SCRIPT_DIR/bin_misc"
+
 reset_usb() {
     MODEL=$(getprop ro.product.model | tr '[:upper:]' '[:lower:]')
     SOC=$(getprop ro.boot.hardware || getprop ro.board.platform | tr '[:upper:]' '[:lower:]')
@@ -8,7 +14,7 @@ reset_usb() {
     echo "product: $MODEL"
     echo "soc: $SOC"
     echo "kernel: $KERNEL_VER"
-    
+
     NEED_RESET=0
 
     if [[ "$MODEL" == *"moto g20"* || "$MODEL" == *"moto e40"* ]]; then
@@ -36,7 +42,7 @@ reset_usb() {
     done
 
     if [ -z "$USB_DEVS" ]; then
-        echo "nenhun dispositivo USB detectado após 30 segundos. abortando"
+        echo "nenhum dispositivo USB detectado após 30 segundos. abortando"
         exit 1
     fi
 
@@ -52,13 +58,15 @@ reset_usb() {
 }
 
 run_cmd() {
+    cd "$WORKSPACE_DIR" || exit 1
+
     while true; do
         termux-usb -l > file.txt || continue
         USB_DEVICE=$(grep -o /dev/bus/usb/[0-9]*/[0-9]* file.txt)
         termux-usb -r $USB_DEVICE || continue
-        termux-usb -e "./apps/spd_dump --usb-fd $1" $USB_DEVICE && break
+        termux-usb -e "$APPS_DIR/spd_dump --usb-fd $1" $USB_DEVICE && break
     done
 }
 
 reset_usb
-run_cmd "loadexec bin/custom_exec_no_verify_65015f08.bin fdl bin/fdl1-dl.bin 0x65000800 fdl bin/fdl2-dl.bin 0x9efffe00 exec wof miscdata 8192 bin_misc/zero.bin verity 1 w misc bin_misc/misc-wipe.bin reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec wof miscdata 8192 $BIN_MISC_DIR/zero.bin verity 1 w misc $BIN_MISC_DIR/misc-wipe.bin reset"
