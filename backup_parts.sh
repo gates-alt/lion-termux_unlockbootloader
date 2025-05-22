@@ -13,12 +13,10 @@ else
 fi
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-USER_PATH="$SCRIPT_DIR/SPRD_BKP_${TIMESTAMP}_FULL"
-mkdir -p "$USER_PATH"
+USER_PATH="$WORKSPACE_DIR/SPRD_BKP_${TIMESTAMP}_ACTIVE"
 
 cd "$WORKSPACE_DIR" || exit 1
-
-LATEST_PTABLE=$(ls -t "$WORKSPACE_DIR"/partition* "$WORKSPACE_DIR"/partitions* 2>/dev/null | head -n 1)
+mkdir -p "$USER_PATH"
 
 run_cmd() {
     while true; do
@@ -29,56 +27,4 @@ run_cmd() {
     done
 }
 
-reset_usb() {
-    MODEL=$(getprop ro.product.model | tr '[:upper:]' '[:lower:]')
-    SOC=$(getprop ro.boot.hardware || getprop ro.board.platform | tr '[:upper:]' '[:lower:]')
-    KERNEL_VER=$(uname -r | cut -d '.' -f1-2)
-
-    echo "product: $MODEL"
-    echo "soc: $SOC"
-    echo "kernel: $KERNEL_VER"
-    
-    NEED_RESET=0
-
-    if [[ "$MODEL" == *"moto g20"* || "$MODEL" == *"moto e40"* ]]; then
-        NEED_RESET=1
-    elif [[ "$SOC" == *"ums512"* || "$SOC" == *"unisoc_t700"* || "$SOC" == *"t700"* ]]; then
-        NEED_RESET=1
-    elif [[ $(echo "$KERNEL_VER < 4.4" | bc) -eq 1 ]]; then
-        NEED_RESET=1
-    fi
-
-    if [ "$NEED_RESET" -ne 1 ]; then
-        echo "reset USB não necessário neste dispositivo."
-        return
-    fi
-
-    echo "aguardando conexão USB por até 30 segundos..."
-
-    for i in $(seq 1 30); do
-        USB_DEVS=$(su -c ls /sys/bus/usb/devices/ | grep -E '^[0-9]+-[0-9]+$')
-        if [ -n "$USB_DEVS" ]; then
-            echo "dispositivo: $USB_DEVS"
-            break
-        fi
-        sleep 1
-    done
-
-    if [ -z "$USB_DEVS" ]; then
-        echo "nenhum dispositivo USB detectado após 30 segundos. abortando"
-        exit 1
-    fi
-
-    echo "reset Android subsistema USB do kernel..."
-
-    for dev in $USB_DEVS; do
-        su -c "echo -n '$dev' > /sys/bus/usb/drivers/usb/unbind"
-        sleep 1
-        su -c "echo -n '$dev' > /sys/bus/usb/drivers/usb/bind"
-    done
-
-    echo "reset USB concluído. continuando..."
-}
-
-reset_usb
-run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec path $USER_PATH read_parts $LATEST_PTABLE reset"
+run_cmd "loadexec $BIN_DIR/custom_exec_no_verify_65015f08.bin fdl $BIN_DIR/fdl1-dl.bin 0x65000800 fdl $BIN_DIR/fdl2-dl.bin 0x9efffe00 exec path $USER_PATH r all_lite reset"
